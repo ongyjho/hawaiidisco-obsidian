@@ -23,9 +23,10 @@ export class DatabaseReader {
 			throw new Error(`Database not found: ${resolvedPath}`);
 		}
 
+		const wasmBinary = fs.readFileSync(this.wasmPath);
 		const SQL = await initSqlJs({
-			locateFile: () => this.wasmPath,
-		});
+			wasmBinary: wasmBinary.buffer as ArrayBuffer,
+		} as Parameters<typeof initSqlJs>[0]);
 
 		const fileBuffer = fs.readFileSync(resolvedPath);
 		this.db = new SQL.Database(new Uint8Array(fileBuffer));
