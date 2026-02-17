@@ -3,7 +3,7 @@
 	"name": "Hawaii Disco",
 	"version": "0.1.0",
 	"minAppVersion": "1.0.0",
-	"description": "Browse Hawaii Disco RSS articles and AI digests inside Obsidian",
+	"description": "Browse curated RSS articles with AI insights from Hawaii Disco.",
 	"author": "ongyjho",
 	"authorUrl": "https://github.com/ongyjho",
 	"isDesktopOnly": true

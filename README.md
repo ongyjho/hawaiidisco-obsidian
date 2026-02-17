@@ -88,6 +88,12 @@ Every note includes what HD already processed:
 
 This plugin uses [sql.js](https://github.com/sql-js/sql.js) (SQLite compiled to WebAssembly) to read Hawaii Disco's database file in **read-only mode**. It never writes to the database. The database is loaded as an in-memory snapshot and refreshed on demand.
 
+## Disclosures
+
+- **External file access**: This plugin reads a SQLite database file outside of your vault (default: `~/.local/share/hawaiidisco/hawaiidisco.db`). The path is configurable in settings. The file is read in read-only mode.
+- **Network requests**: If you configure an Anthropic API key for digest generation, the plugin sends article data to the [Anthropic Messages API](https://docs.anthropic.com/en/api/messages) (`api.anthropic.com`). This is entirely optional — the plugin works without an API key.
+- **No telemetry**: This plugin does not collect or transmit any analytics or telemetry data.
+
 ## License
 
 MIT
