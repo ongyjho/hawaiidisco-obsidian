@@ -26,7 +26,7 @@ export default class HawaiiDiscoPlugin extends Plugin {
 			basePath,
 			".obsidian",
 			"plugins",
-			"hawaiidisco-obsidian",
+			"hawaiidisco",
 		);
 		const wasmPath = require("path").join(pluginDir, "sql-wasm.wasm");
 
