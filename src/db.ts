@@ -1,3 +1,6 @@
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import initSqlJs, { Database as SqlJsDatabase } from "sql.js";
 import { Article, ArticleFilter, BookmarkRow, Digest } from "./types";
 
@@ -8,15 +11,12 @@ export class DatabaseReader {
 
 	private resolveDbPath(dbPath: string): string {
 		if (dbPath.startsWith("~")) {
-			// eslint-disable-next-line @typescript-eslint/no-var-requires
-			const os = require("os") as typeof import("os");
-			return require("path").join(os.homedir(), dbPath.slice(1));
+			return path.join(os.homedir(), dbPath.slice(1));
 		}
 		return dbPath;
 	}
 
 	async open(dbPath: string): Promise<void> {
-		const fs = require("fs") as typeof import("fs");
 		const resolvedPath = this.resolveDbPath(dbPath);
 
 		if (!fs.existsSync(resolvedPath)) {
@@ -25,8 +25,8 @@ export class DatabaseReader {
 
 		const wasmBinary = fs.readFileSync(this.wasmPath);
 		const SQL = await initSqlJs({
-			wasmBinary: wasmBinary.buffer as ArrayBuffer,
-		} as Parameters<typeof initSqlJs>[0]);
+			wasmBinary: wasmBinary.buffer.slice(0) as ArrayBuffer,
+		});
 
 		const fileBuffer = fs.readFileSync(resolvedPath);
 		this.db = new SQL.Database(new Uint8Array(fileBuffer));

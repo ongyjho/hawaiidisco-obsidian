@@ -2,8 +2,13 @@ import { requestUrl } from "obsidian";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
+interface AnthropicContentBlock {
+	type: string;
+	text: string;
+}
+
 interface AnthropicMessage {
-	content: Array<{ type: string; text: string }>;
+	content: AnthropicContentBlock[];
 }
 
 export async function callAnthropic(opts: {

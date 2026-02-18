@@ -1,29 +1,34 @@
 declare module "sql.js" {
+	type SqlValue = string | number | null | Uint8Array;
+	type ParamArray = SqlValue[];
+	type RowObject = Record<string, SqlValue>;
+
 	interface SqlJsStatic {
 		Database: new (data?: ArrayLike<number>) => Database;
 	}
 
 	interface Database {
-		run(sql: string, params?: any[]): Database;
-		exec(sql: string, params?: any[]): QueryExecResult[];
+		run(sql: string, params?: ParamArray): Database;
+		exec(sql: string, params?: ParamArray): QueryExecResult[];
 		prepare(sql: string): Statement;
 		close(): void;
 	}
 
 	interface Statement {
-		bind(params?: any[]): boolean;
+		bind(params?: ParamArray): boolean;
 		step(): boolean;
-		getAsObject(params?: any): Record<string, any>;
+		getAsObject(params?: ParamArray): RowObject;
 		free(): boolean;
 	}
 
 	interface QueryExecResult {
 		columns: string[];
-		values: any[][];
+		values: SqlValue[][];
 	}
 
 	interface InitSqlJsOptions {
 		locateFile?: (file: string) => string;
+		wasmBinary?: ArrayBuffer;
 	}
 
 	export default function initSqlJs(
