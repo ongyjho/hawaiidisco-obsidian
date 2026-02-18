@@ -1,3 +1,4 @@
+import * as path from "path";
 import { Notice, Plugin } from "obsidian";
 import { DatabaseReader } from "./db";
 import { NoteCreator } from "./services/note-creator";
@@ -19,16 +20,21 @@ export default class HawaiiDiscoPlugin extends Plugin {
 
 		this.noteCreator = new NoteCreator(this.app, this.settings);
 
-		// Resolve WASM path inside plugin directory
-		const adapter = this.app.vault.adapter as any;
-		const basePath: string = adapter.getBasePath?.() ?? "";
-		const pluginDir = require("path").join(
+		// Resolve WASM path inside plugin directory using vault configDir to support non-default config folders
+		const adapter = this.app.vault.adapter;
+		const basePath =
+			"getBasePath" in adapter &&
+			typeof (adapter as { getBasePath: () => string }).getBasePath ===
+				"function"
+				? (adapter as { getBasePath: () => string }).getBasePath()
+				: "";
+		const pluginDir = path.join(
 			basePath,
-			".obsidian",
+			this.app.vault.configDir,
 			"plugins",
 			"hawaiidisco",
 		);
-		const wasmPath = require("path").join(pluginDir, "sql-wasm.wasm");
+		const wasmPath = path.join(pluginDir, "sql-wasm.wasm");
 
 		this.db = new DatabaseReader(wasmPath);
 
@@ -43,27 +49,33 @@ export default class HawaiiDiscoPlugin extends Plugin {
 		);
 
 		// Ribbon icon
-		this.addRibbonIcon("rss", "Hawaii Disco", () =>
-			this.activateArticleList(),
-		);
+		this.addRibbonIcon("rss", "Hawaii Disco", () => {
+			void this.activateArticleList();
+		});
 
 		// Commands
 		this.addCommand({
 			id: "open-article-list",
 			name: "Open article list",
-			callback: () => this.activateArticleList(),
+			callback: () => {
+				void this.activateArticleList();
+			},
 		});
 
 		this.addCommand({
 			id: "open-digest",
 			name: "Open digest view",
-			callback: () => this.activateDigest(),
+			callback: () => {
+				void this.activateDigest();
+			},
 		});
 
 		this.addCommand({
 			id: "refresh-database",
 			name: "Refresh database",
-			callback: () => this.refreshDb(),
+			callback: () => {
+				void this.refreshDb();
+			},
 		});
 
 		// Settings tab
@@ -77,7 +89,7 @@ export default class HawaiiDiscoPlugin extends Plugin {
 		}
 	}
 
-	async onunload(): Promise<void> {
+	onunload(): void {
 		this.db?.close();
 	}
 
@@ -88,7 +100,9 @@ export default class HawaiiDiscoPlugin extends Plugin {
 		for (const leaf of this.app.workspace.getLeavesOfType(
 			VIEW_TYPE_ARTICLE_LIST,
 		)) {
-			(leaf.view as ArticleListView).refreshArticles();
+			if (leaf.view instanceof ArticleListView) {
+				leaf.view.refreshArticles();
+			}
 		}
 
 		new Notice("Hawaii Disco: Database refreshed");
@@ -107,7 +121,7 @@ export default class HawaiiDiscoPlugin extends Plugin {
 				leaf = rightLeaf;
 			}
 		}
-		if (leaf) workspace.revealLeaf(leaf);
+		if (leaf) await workspace.revealLeaf(leaf);
 	}
 
 	async activateDigest(): Promise<void> {
@@ -121,7 +135,7 @@ export default class HawaiiDiscoPlugin extends Plugin {
 			});
 			leaf = newLeaf;
 		}
-		if (leaf) workspace.revealLeaf(leaf);
+		if (leaf) await workspace.revealLeaf(leaf);
 	}
 
 	async loadSettings(): Promise<void> {

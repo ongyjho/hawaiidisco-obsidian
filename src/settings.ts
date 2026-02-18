@@ -13,10 +13,8 @@ export class HawaiiDiscoSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Hawaii Disco" });
-
 		// --- Database ---
-		containerEl.createEl("h3", { text: "Database" });
+		new Setting(containerEl).setName("Database").setHeading();
 
 		new Setting(containerEl)
 			.setName("Database path")
@@ -52,7 +50,7 @@ export class HawaiiDiscoSettingTab extends PluginSettingTab {
 			);
 
 		// --- AI / Digest ---
-		containerEl.createEl("h3", { text: "AI / Digest Generation" });
+		new Setting(containerEl).setName("AI / digest generation").setHeading();
 
 		new Setting(containerEl)
 			.setName("Anthropic API key")
@@ -120,7 +118,7 @@ export class HawaiiDiscoSettingTab extends PluginSettingTab {
 			);
 
 		// --- Notes ---
-		containerEl.createEl("h3", { text: "Notes" });
+		new Setting(containerEl).setName("Notes").setHeading();
 
 		new Setting(containerEl)
 			.setName("Notes folder")

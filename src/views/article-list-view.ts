@@ -31,6 +31,7 @@ export class ArticleListView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
+		await Promise.resolve();
 		this.renderView();
 	}
 
@@ -106,7 +107,7 @@ export class ArticleListView extends ItemView {
 		const feedSelect = feedRow.createEl("select", {
 			cls: "hd-feed-select",
 		});
-		feedSelect.createEl("option", { text: "All Feeds", value: "" });
+		feedSelect.createEl("option", { text: "All feeds", value: "" });
 		const feedNames = this.plugin.db?.getFeedNames() ?? [];
 		for (const name of feedNames) {
 			const opt = feedSelect.createEl("option", {
@@ -126,9 +127,10 @@ export class ArticleListView extends ItemView {
 			attr: { "aria-label": "Refresh database" },
 		});
 		refreshBtn.textContent = "\u21bb";
-		refreshBtn.addEventListener("click", async () => {
-			await this.plugin.refreshDb();
-			this.renderView();
+		refreshBtn.addEventListener("click", () => {
+			void this.plugin.refreshDb().then(() => {
+				this.renderView();
+			});
 		});
 
 		// Search
@@ -154,7 +156,7 @@ export class ArticleListView extends ItemView {
 
 		if (!this.plugin.db?.isOpen) {
 			this.listEl.createDiv({
-				text: "Open Settings to configure database path",
+				text: "Open settings to configure database path",
 				cls: "hd-empty",
 			});
 			return;
@@ -224,7 +226,9 @@ export class ArticleListView extends ItemView {
 		}
 
 		// Click to open note
-		item.addEventListener("click", () => this.openArticleNote(article));
+		item.addEventListener("click", () => {
+			void this.openArticleNote(article);
+		});
 	}
 
 	private async openArticleNote(article: Article): Promise<void> {

@@ -22,7 +22,7 @@ export class DigestView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Hawaii Disco Digest";
+		return "Hawaii Disco digest";
 	}
 
 	getIcon(): string {
@@ -30,6 +30,7 @@ export class DigestView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
+		await Promise.resolve();
 		this.renderView();
 	}
 
@@ -58,8 +59,8 @@ export class DigestView extends ItemView {
 
 	private renderModeToggle(container: HTMLElement): void {
 		const modes: { label: string; value: DigestMode }[] = [
-			{ label: "Cached Digests", value: "cached" },
-			{ label: "Generate New", value: "generate" },
+			{ label: "Cached digests", value: "cached" },
+			{ label: "Generate new", value: "generate" },
 		];
 
 		for (const m of modes) {
@@ -111,38 +112,46 @@ export class DigestView extends ItemView {
 
 		// Save button
 		const saveBtn = header.createEl("button", {
-			text: "Save as Note",
+			text: "Save as note",
 			cls: "hd-save-btn",
 		});
-		saveBtn.addEventListener("click", async () => {
-			try {
-				const filePath =
-					await this.plugin.noteCreator.createDigestNote({
-						content: digest.content,
-						article_count: digest.article_count,
-						period_days: digest.period_days,
-					});
-				new Notice(`Digest saved: ${filePath}`);
-			} catch (e) {
-				new Notice(`Failed to save digest: ${e}`);
-			}
+		saveBtn.addEventListener("click", () => {
+			void this.saveDigestNote({
+				content: digest.content,
+				article_count: digest.article_count,
+				period_days: digest.period_days,
+			});
 		});
 
 		// Content (rendered as markdown)
 		const body = card.createDiv({ cls: "hd-digest-body" });
-		MarkdownRenderer.render(
+		void MarkdownRenderer.render(
 			this.app,
 			digest.content,
 			body,
 			"",
-			this.plugin,
+			this,
 		);
+	}
+
+	private async saveDigestNote(digest: {
+		content: string;
+		article_count: number;
+		period_days: number;
+	}): Promise<void> {
+		try {
+			const filePath =
+				await this.plugin.noteCreator.createDigestNote(digest);
+			new Notice(`Digest saved: ${filePath}`);
+		} catch (e) {
+			new Notice(`Failed to save digest: ${e}`);
+		}
 	}
 
 	private renderGenerateForm(container: HTMLElement): void {
 		if (!this.plugin.settings.anthropicApiKey) {
 			container.createDiv({
-				text: "Configure your Anthropic API key in Settings to generate digests.",
+				text: "Configure your Anthropic API key in settings to generate digests.",
 				cls: "hd-empty",
 			});
 			return;
@@ -178,99 +187,106 @@ export class DigestView extends ItemView {
 
 		// Generate button
 		const generateBtn = form.createEl("button", {
-			text: "Generate Digest",
+			text: "Generate digest",
 			cls: "hd-generate-btn",
 		});
 
 		// Result area
 		const resultArea = container.createDiv({ cls: "hd-generate-result" });
 
-		generateBtn.addEventListener("click", async () => {
-			if (this.isGenerating) return;
-
+		generateBtn.addEventListener("click", () => {
 			const periodDays = parseInt(periodInput.value, 10) || 7;
 			const maxArticles = parseInt(maxInput.value, 10) || 20;
+			void this.runGenerate(
+				generateBtn,
+				resultArea,
+				periodDays,
+				maxArticles,
+			);
+		});
+	}
 
-			this.isGenerating = true;
-			generateBtn.textContent = "Generating...";
-			generateBtn.disabled = true;
+	private async runGenerate(
+		generateBtn: HTMLButtonElement,
+		resultArea: HTMLElement,
+		periodDays: number,
+		maxArticles: number,
+	): Promise<void> {
+		if (this.isGenerating) return;
+
+		this.isGenerating = true;
+		generateBtn.textContent = "Generating...";
+		generateBtn.disabled = true;
+		resultArea.empty();
+
+		try {
+			const articles = this.plugin.db!.getRecentArticles(
+				periodDays,
+				maxArticles,
+			);
+
+			if (articles.length === 0) {
+				resultArea.createDiv({
+					text: `No articles found in the last ${periodDays} days`,
+					cls: "hd-empty",
+				});
+				return;
+			}
+
+			resultArea.createDiv({
+				text: `Generating digest from ${articles.length} articles...`,
+				cls: "hd-loading",
+			});
+
+			const content = await generateDigest(
+				articles,
+				this.plugin.settings,
+				periodDays,
+			);
+
 			resultArea.empty();
 
-			try {
-				const articles = this.plugin.db!.getRecentArticles(
-					periodDays,
-					maxArticles,
-				);
-
-				if (articles.length === 0) {
-					resultArea.createDiv({
-						text: `No articles found in the last ${periodDays} days`,
-						cls: "hd-empty",
-					});
-					return;
-				}
-
-				resultArea.createDiv({
-					text: `Generating digest from ${articles.length} articles...`,
-					cls: "hd-loading",
-				});
-
-				const content = await generateDigest(
-					articles,
-					this.plugin.settings,
-					periodDays,
-				);
-
-				resultArea.empty();
-
-				// Save as Note button
-				const saveRow = resultArea.createDiv({
-					cls: "hd-digest-card-header",
-				});
-				saveRow.createSpan({
-					text: `${articles.length} articles \u00b7 ${periodDays} days`,
-					cls: "hd-digest-meta",
-				});
-				const saveBtn = saveRow.createEl("button", {
-					text: "Save as Note",
-					cls: "hd-save-btn",
-				});
-				saveBtn.addEventListener("click", async () => {
-					try {
-						const filePath =
-							await this.plugin.noteCreator.createDigestNote({
-								content,
-								article_count: articles.length,
-								period_days: periodDays,
-							});
-						new Notice(`Digest saved: ${filePath}`);
-					} catch (e) {
-						new Notice(`Failed to save: ${e}`);
-					}
-				});
-
-				// Rendered markdown
-				const body = resultArea.createDiv({
-					cls: "hd-digest-body",
-				});
-				MarkdownRenderer.render(
-					this.app,
+			// Save as note button
+			const saveRow = resultArea.createDiv({
+				cls: "hd-digest-card-header",
+			});
+			saveRow.createSpan({
+				text: `${articles.length} articles \u00b7 ${periodDays} days`,
+				cls: "hd-digest-meta",
+			});
+			const saveBtn = saveRow.createEl("button", {
+				text: "Save as note",
+				cls: "hd-save-btn",
+			});
+			saveBtn.addEventListener("click", () => {
+				void this.saveDigestNote({
 					content,
-					body,
-					"",
-					this.plugin,
-				);
-			} catch (e) {
-				resultArea.empty();
-				resultArea.createDiv({
-					text: `Error: ${e}`,
-					cls: "hd-status-error",
+					article_count: articles.length,
+					period_days: periodDays,
 				});
-			} finally {
-				this.isGenerating = false;
-				generateBtn.textContent = "Generate Digest";
-				generateBtn.disabled = false;
-			}
-		});
+			});
+
+			// Rendered markdown
+			const body = resultArea.createDiv({
+				cls: "hd-digest-body",
+			});
+			void MarkdownRenderer.render(
+				this.app,
+				content,
+				body,
+				"",
+				this,
+			);
+		} catch (e) {
+			resultArea.empty();
+			resultArea.createDiv({
+				text: `Error: ${e}`,
+				cls: "hd-status-error",
+			});
+		} finally {
+			this.isGenerating = false;
+			generateBtn.textContent = "Generate digest";
+			generateBtn.disabled = false;
+		}
 	}
 }
