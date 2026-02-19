@@ -25,7 +25,7 @@ export class DatabaseReader {
 
 		const wasmBinary = fs.readFileSync(this.wasmPath);
 		const SQL = await initSqlJs({
-			wasmBinary: wasmBinary.buffer.slice(0) as ArrayBuffer,
+			wasmBinary: wasmBinary.buffer.slice(0),
 		});
 
 		const fileBuffer = fs.readFileSync(resolvedPath);
